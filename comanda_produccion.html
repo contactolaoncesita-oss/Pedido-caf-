@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planilla de Pedido - Producción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#F6F6F4;
+    --card:#FFFFFF;
+    --border:#E3E2DE;
+    --ink:#222220;
+    --ink-soft:#76746E;
+    --accent:#3B6E8F;
+    --accent-dark:#2C5470;
+    --accent-soft:#EAF1F5;
+    --error:#B3413B;
+    --error-soft:#FBEEED;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:32px 16px 60px;
+  }
+  .page-wrap{max-width:480px;margin:0 auto;}
+  .ticket{
+    position:relative;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow:0 8px 24px -16px rgba(34,34,32,0.18);
+    padding:28px 26px 32px;
+  }
+  .eyebrow{
+    font-size:11px;font-weight:600;letter-spacing:0.1em;
+    color:var(--ink-soft);text-align:center;margin:0 0 6px;text-transform:uppercase;
+  }
+  .title{
+    font-weight:700;font-size:22px;letter-spacing:-0.01em;
+    text-align:center;margin:0;
+  }
+  .subtitle{text-align:center;font-size:13px;color:var(--ink-soft);margin:6px 0 22px;}
+  .divider{border:none;border-top:1px solid var(--border);margin:22px 0;}
+  .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+  .field label{
+    font-size:11px;text-transform:uppercase;letter-spacing:0.04em;
+    color:var(--ink-soft);font-weight:600;
+  }
+  .field input, .field textarea{
+    font-family:'Inter',sans-serif;font-size:14px;padding:9px 10px;
+    border:1px solid var(--border);background:#fff;color:var(--ink);border-radius:8px;
+  }
+  .field input:focus, .field textarea:focus{
+    outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);
+  }
+  .field.error input{border-color:var(--error);background:var(--error-soft);}
+  .field.error label{color:var(--error);}
+  .cat-label{
+    font-size:11.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--ink-soft);margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border);
+  }
+  .row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:8px 0;border-bottom:1px solid #F1F0EE;
+  }
+  .row:last-child{border-bottom:none;}
+  .row-name{font-size:14px;line-height:1.3;}
+  .stepper{display:flex;align-items:center;gap:0;flex-shrink:0;}
+  .step-btn{
+    width:28px;height:28px;border:1px solid var(--border);background:#fff;color:var(--ink);
+    font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;user-select:none;
+  }
+  .step-btn:hover{background:var(--bg);}
+  .step-btn:active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .step-btn.minus{border-radius:6px 0 0 6px;}
+  .step-btn.plus{border-radius:0 6px 6px 0;}
+  .qty-input{
+    width:42px;height:28px;text-align:center;border:1px solid var(--border);
+    border-left:none;border-right:none;font-family:'Inter',sans-serif;font-size:13.5px;
+    -moz-appearance:textfield;
+  }
+  .qty-input::-webkit-outer-spin-button,.qty-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .qty-input:focus{outline:2px solid var(--accent);outline-offset:1px;position:relative;z-index:1;}
+  .row.active .row-name{font-weight:600;color:var(--accent-dark);}
+  textarea{resize:vertical;min-height:54px;font-family:'Inter',sans-serif;}
+  .footer{margin-top:22px;text-align:center;}
+  .total-stat{
+    display:flex;align-items:baseline;justify-content:center;gap:6px;
+    background:var(--accent-soft);border-radius:10px;
+    padding:14px;margin-bottom:18px;
+  }
+  .total-stat .num{font-size:24px;font-weight:700;color:var(--accent-dark);line-height:1;}
+  .total-stat .label{font-size:12px;color:var(--accent-dark);font-weight:500;}
+  .btn-row{display:flex;flex-direction:column;gap:10px;}
+  .btn{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:14px;padding:13px 18px;
+    border:none;border-radius:8px;cursor:pointer;
+  }
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--border);}
+  .btn-ghost:hover{background:var(--bg);}
+  .help-text{font-size:11px;color:var(--ink-soft);margin-top:8px;}
+  #summary-view{display:none;}
+  .meta-line{
+    display:flex;justify-content:space-between;font-size:13px;
+    padding:6px 0;border-bottom:1px solid var(--border);
+  }
+  .meta-line span:first-child{color:var(--ink-soft);}
+  .preview-table{width:100%;border-collapse:collapse;margin:18px 0;font-size:13px;}
+  .preview-table th{
+    font-size:10.5px;font-weight:700;letter-spacing:0.04em;
+    text-transform:uppercase;color:var(--ink-soft);text-align:left;
+    padding:6px 4px;border-bottom:1px solid var(--ink);
+  }
+  .preview-table td{padding:7px 4px;border-bottom:1px solid #F1F0EE;}
+  .preview-table td.qty{text-align:right;}
+  .preview-table tfoot td{
+    font-weight:700;border-bottom:none;border-top:1px solid var(--ink);padding-top:10px;
+  }
+  .obs-note{font-size:12px;color:var(--ink-soft);margin:0 0 14px;font-style:italic;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#FFFFFF;padding:10px 18px;border-radius:8px;font-size:13px;
+    opacity:0;transition:opacity 0.25s, transform 0.25s;pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="ticket" id="form-view">
+    <p class="eyebrow">PEDIDO INTERNO</p>
+    <h1 class="title">Pedido de Producción</h1>
+    <p class="subtitle">Café → Taller de Producción</p>
+
+    <div class="field" id="field-fechaEntrega">
+      <label for="fechaEntrega">Fecha de entrega deseada</label>
+      <input type="date" id="fechaEntrega">
+    </div>
+
+    <hr class="divider">
+
+    <div id="productos-container"></div>
+
+    <hr class="divider">
+
+    <div class="field">
+      <label for="observaciones">Observaciones (opcional)</label>
+      <textarea id="observaciones" placeholder="Notas, urgencias, formatos especiales..."></textarea>
+    </div>
+
+    <div class="footer">
+      <div class="total-stat">
+        <span class="num" id="totalUnidades">0</span>
+        <span class="label">unidades en total</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnGenerar">Generar planilla →</button>
+        <button class="btn btn-ghost" id="btnLimpiar">Limpiar cantidades</button>
+      </div>
+      <p class="help-text" id="resumenProductos">0 productos seleccionados</p>
+    </div>
+  </div>
+
+  <div class="ticket" id="summary-view">
+    <p class="eyebrow">PLANILLA LISTA</p>
+    <h1 class="title">Planilla de Pedido</h1>
+    <p class="subtitle">Café → Taller de Producción</p>
+    <hr class="divider">
+
+    <div class="meta-line"><span>Fecha de entrega</span><span id="metaFecha">—</span></div>
+    <p class="obs-note" id="metaObs" style="display:none;"></p>
+
+    <table class="preview-table">
+      <thead>
+        <tr><th>Categoría</th><th>Producto</th><th style="text-align:right;">Cant.</th></tr>
+      </thead>
+      <tbody id="previewBody"></tbody>
+      <tfoot>
+        <tr><td></td><td>TOTAL</td><td class="qty" id="previewTotal">0</td></tr>
+      </tfoot>
+    </table>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnEnviarSheet">Enviar a Google Sheet →</button>
+      <button class="btn btn-ghost" id="btnXLSX">Descargar Excel (.xlsx)</button>
+      <button class="btn btn-ghost" id="btnCSV">Descargar CSV</button>
+      <button class="btn btn-ghost" id="btnVolver">← Editar pedido</button>
+    </div>
+    <p class="help-text" id="sheetStatus">Cada envío agrega filas nuevas a tu Google Sheet — no borra lo anterior.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast">Descargado ✓</div>
+
+<script>
+// Pega aquí la URL de tu Google Apps Script (termina en /exec)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzg_02JiR2L1z8FoSWo0jhJm2SAC8vHVZ95KtDKUkh4tVAIw0AAcNQSActZTopnazfu/exec";
+
+const categorias = [
+  { nombre: "Panadería", productos: ["Medialunas"] },
+  { nombre: "Alfajores", productos: ["Alfajor de Maicena Café", "Alfajor Nuez Café"] },
+  { nombre: "Galletones", productos: ["Galletón Chips", "Galletón Avena", "Galletón Avena Sin Azúcar"] },
+  { nombre: "Merengues", productos: ["Merengues Tapitas", "Merengues Dobles"] },
+  { nombre: "Muffins", productos: ["Muffins Chips", "Muffins Chocolate", "Muffins Vegano"] },
+  { nombre: "NY Cookies", productos: ["NY Chips", "NY Manjar Nuez", "NY Red Velvet", "NY Chocolate"] },
+  { nombre: "Otros", productos: ["Brownie", "Calugas", "Pie de Limón", "Kuchen Nuez", "Tres Leches en Vaso", "Sniker Vegano"] },
+];
+
+function slug(s){
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");
+}
+
+const cantidades = {};
+categorias.forEach(cat => cat.productos.forEach(p => cantidades[slug(p)] = 0));
+
+const contenedor = document.getElementById("productos-container");
+categorias.forEach(cat => {
+  const catLabel = document.createElement("div");
+  catLabel.className = "cat-label";
+  catLabel.textContent = cat.nombre.toUpperCase();
+  contenedor.appendChild(catLabel);
+
+  cat.productos.forEach(p => {
+    const id = slug(p);
+    const row = document.createElement("div");
+    row.className = "row";
+    row.id = "row-" + id;
+    row.innerHTML = `
+      <span class="row-name">${p}</span>
+      <div class="stepper">
+        <button type="button" class="step-btn minus" data-id="${id}" aria-label="Restar ${p}">−</button>
+        <input type="number" class="qty-input" id="qty-${id}" data-id="${id}" value="0" min="0" inputmode="numeric">
+        <button type="button" class="step-btn plus" data-id="${id}" aria-label="Sumar ${p}">+</button>
+      </div>`;
+    contenedor.appendChild(row);
+  });
+});
+
+function clamp(n){ n = parseInt(n,10); return (isNaN(n)||n<0) ? 0 : n; }
+
+function setCantidad(id, valor){
+  cantidades[id] = clamp(valor);
+  document.getElementById("qty-"+id).value = cantidades[id];
+  document.getElementById("row-"+id).classList.toggle("active", cantidades[id] > 0);
+  actualizarTotales();
+}
+
+contenedor.addEventListener("click", (e) => {
+  const btn = e.target.closest(".step-btn");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  setCantidad(id, cantidades[id] + (btn.classList.contains("plus") ? 1 : -1));
+});
+contenedor.addEventListener("input", (e) => {
+  const input = e.target.closest(".qty-input");
+  if (!input) return;
+  setCantidad(input.dataset.id, input.value);
+});
+
+function actualizarTotales(){
+  let totalUnidades = 0, totalProductos = 0;
+  Object.values(cantidades).forEach(q => { if (q>0){ totalUnidades+=q; totalProductos++; } });
+  document.getElementById("totalUnidades").textContent = totalUnidades;
+  document.getElementById("resumenProductos").style.color = "var(--ink-soft)";
+  document.getElementById("resumenProductos").textContent =
+    totalProductos === 0 ? "0 productos seleccionados" :
+    `${totalProductos} producto${totalProductos>1?'s':''} · ${totalUnidades} unidad${totalUnidades>1?'es':''}`;
+}
+
+const hoy = new Date().toISOString().slice(0,10);
+
+function formatFecha(v){
+  if (!v) return null;
+  const [y,m,d] = v.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+function buildRows(){
+  const rows = [];
+  categorias.forEach(cat => cat.productos.forEach(p => {
+    const q = cantidades[slug(p)];
+    if (q > 0) rows.push({ categoria: cat.nombre, producto: p, cantidad: q });
+  }));
+  return rows;
+}
+
+document.getElementById("btnGenerar").addEventListener("click", () => {
+  const fechaField = document.getElementById("field-fechaEntrega");
+  const fechaVal = document.getElementById("fechaEntrega").value;
+  const fechaOk = fechaVal.length > 0;
+  fechaField.classList.toggle("error", !fechaOk);
+  if (!fechaOk){ document.getElementById("fechaEntrega").focus(); return; }
+
+  const rows = buildRows();
+  if (rows.length === 0){
+    document.getElementById("resumenProductos").textContent = "Agrega al menos 1 producto antes de generar la planilla";
+    document.getElementById("resumenProductos").style.color = "var(--error)";
+    return;
+  }
+
+  document.getElementById("metaFecha").textContent = formatFecha(fechaVal);
+  const obs = document.getElementById("observaciones").value.trim();
+  const metaObs = document.getElementById("metaObs");
+  if (obs){ metaObs.style.display = "block"; metaObs.textContent = "Obs: " + obs; }
+  else { metaObs.style.display = "none"; }
+
+  const tbody = document.getElementById("previewBody");
+  tbody.innerHTML = "";
+  let total = 0;
+  rows.forEach(r => {
+    total += r.cantidad;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${r.categoria}</td><td>${r.producto}</td><td class="qty">${r.cantidad}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById("previewTotal").textContent = total;
+
+  const status = document.getElementById("sheetStatus");
+  status.textContent = "Cada envío agrega filas nuevas a tu Google Sheet — no borra lo anterior.";
+  status.style.color = "var(--ink-soft)";
+
+  document.getElementById("form-view").style.display = "none";
+  document.getElementById("summary-view").style.display = "block";
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+
+document.getElementById("btnVolver").addEventListener("click", () => {
+  document.getElementById("summary-view").style.display = "none";
+  document.getElementById("form-view").style.display = "block";
+});
+
+document.getElementById("btnLimpiar").addEventListener("click", () => {
+  Object.keys(cantidades).forEach(id => setCantidad(id, 0));
+});
+
+function buildAOA(){
+  const fechaVal = document.getElementById("fechaEntrega").value;
+  const obs = document.getElementById("observaciones").value.trim();
+  const aoa = [["Fecha de entrega", formatFecha(fechaVal) || ""]];
+  if (obs) aoa.push(["Observaciones", obs]);
+  aoa.push([]);
+  aoa.push(["Categoría","Producto","Cantidad"]);
+  let total = 0;
+  buildRows().forEach(r => { aoa.push([r.categoria, r.producto, r.cantidad]); total += r.cantidad; });
+  aoa.push([]);
+  aoa.push(["", "TOTAL", total]);
+  return { aoa, fechaVal };
+}
+
+function showToast(msg){
+  const toast = document.getElementById("toast");
+  toast.textContent = msg || "Listo ✓";
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+document.getElementById("btnEnviarSheet").addEventListener("click", () => {
+  const status = document.getElementById("sheetStatus");
+  if (!SCRIPT_URL || SCRIPT_URL.indexOf("PEGA_AQUI") === 0){
+    status.textContent = "Falta configurar la URL de Google Apps Script en el código.";
+    status.style.color = "var(--error)";
+    return;
+  }
+  const fechaVal = document.getElementById("fechaEntrega").value;
+  const observaciones = document.getElementById("observaciones").value.trim();
+  const items = buildRows();
+  const payload = { fechaEntrega: formatFecha(fechaVal), observaciones, items };
+
+  status.textContent = "Enviando...";
+  status.style.color = "var(--ink-soft)";
+
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  }).then(() => {
+    status.textContent = "Enviado a tu Google Sheet ✓";
+    status.style.color = "var(--accent-dark)";
+    showToast("Enviado a Google Sheet ✓");
+  }).catch(() => {
+    status.textContent = "No se pudo enviar — revisa tu conexión e intenta de nuevo.";
+    status.style.color = "var(--error)";
+  });
+});
+
+document.getElementById("btnXLSX").addEventListener("click", () => {
+  const { aoa, fechaVal } = buildAOA();
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{wch:20},{wch:30},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Pedido Producción");
+  XLSX.writeFile(wb, `pedido_produccion_${fechaVal || hoy}.xlsx`);
+  showToast("Descargado ✓");
+});
+
+document.getElementById("btnCSV").addEventListener("click", () => {
+  const { aoa, fechaVal } = buildAOA();
+  const csv = aoa.map(row => row.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `pedido_produccion_${fechaVal || hoy}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Descargado ✓");
+});
+
+actualizarTotales();
+</script>
+</body>
+</html>
